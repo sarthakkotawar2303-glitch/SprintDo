@@ -1,46 +1,112 @@
 
 import { useState, useEffect } from "react";
 
+// Get today's date in YYYY-MM-DD format
+const getTodayDate = () => {
+  const today = new Date();
+
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
 const TaskForm = ({
   onAddTask,
   editingTask,
   onUpdateTask,
   onCancelEdit,
 }) => {
+  // Form states
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("Pending");
   const [priority, setPriority] = useState("Medium");
   const [dueDate, setDueDate] = useState("");
 
-  // Load existing task details when editing
-  useEffect(() => {
-    if (editingTask) {
-      setTitle(editingTask.title);
-      setDescription(editingTask.description);
-      setStatus(editingTask.status);
-      setPriority(editingTask.priority || "Medium");
-      setDueDate(editingTask.dueDate || "");
-    } else {
-      resetForm();
-    }
-  }, [editingTask]);
+  // Validation errors
+  const [errors, setErrors] = useState({});
 
-  // Reset all form fields
+  // Reset form
   const resetForm = () => {
     setTitle("");
     setDescription("");
     setStatus("Pending");
     setPriority("Medium");
     setDueDate("");
+    setErrors({});
   };
 
+  // Populate form when editing a task
+  useEffect(() => {
+    if (editingTask) {
+      setTitle(editingTask.title);
+      setDescription(editingTask.description || "");
+      setStatus(editingTask.status);
+      setPriority(editingTask.priority || "Medium");
+      setDueDate(editingTask.dueDate || "");
+      setErrors({});
+    } else {
+      resetForm();
+    }
+  }, [editingTask]);
+
+  // Validate form fields
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Title validation
+    if (title.trim().length < 3) {
+      newErrors.title =
+        "Title must contain at least 3 characters.";
+    }
+
+    // Description validation
+    if (
+      description.trim() &&
+      description.trim().length < 5
+    ) {
+      newErrors.description =
+        "Description must contain at least 5 characters.";
+    }
+
+    // Due date validation
+    if (dueDate) {
+      const today = new Date();
+
+      const localToday = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate()
+      );
+
+      const selectedDate = new Date(
+        `${dueDate}T00:00:00`
+      );
+
+      if (selectedDate < localToday) {
+        newErrors.dueDate =
+          "Due date cannot be in the past.";
+      }
+    }
+
+    setErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Handle form submission
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    if (!title.trim()) return;
+    // Stop if validation fails
+    if (!validateForm()) {
+      return;
+    }
 
     if (editingTask) {
+      // Update existing task
       onUpdateTask({
         ...editingTask,
         title: title.trim(),
@@ -50,6 +116,7 @@ const TaskForm = ({
         dueDate,
       });
     } else {
+      // Create new task
       const newTask = {
         id: Date.now(),
         title: title.trim(),
@@ -65,6 +132,7 @@ const TaskForm = ({
     resetForm();
   };
 
+  // Handle cancel editing
   const handleCancel = () => {
     resetForm();
     onCancelEdit();
@@ -73,53 +141,78 @@ const TaskForm = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4"
+      noValidate
+      className="space-y-4 rounded-lg border p-5 shadow-sm"
     >
-      <h2 className="text-xl font-semibold text-gray-800">
-        {editingTask ? "Edit Task" : "Add New Task"}
+      <h2 className="text-xl font-semibold">
+        {editingTask ? "Update Task" : "Add New Task"}
       </h2>
 
-      {/* Task Title */}
+      {/* Title */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Task Title
+        <label className="mb-1 block font-medium">
+          Task Title *
         </label>
 
         <input
           type="text"
-          placeholder="Enter task title"
           value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          required
-          className="w-full border border-gray-300 rounded-lg px-4 py-2"
+          maxLength={100}
+          onChange={(event) => {
+            setTitle(event.target.value);
+            setErrors((prev) => ({
+              ...prev,
+              title: "",
+            }));
+          }}
+          placeholder="Enter task title"
+          className="w-full rounded-md border p-2"
         />
+
+        {errors.title && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.title}
+          </p>
+        )}
       </div>
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="mb-1 block font-medium">
           Description
         </label>
 
         <textarea
-          placeholder="Enter task description"
           value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          rows="3"
-          className="w-full border border-gray-300 rounded-lg px-4 py-2"
+          maxLength={500}
+          onChange={(event) => {
+            setDescription(event.target.value);
+            setErrors((prev) => ({
+              ...prev,
+              description: "",
+            }));
+          }}
+          placeholder="Enter task description"
+          className="w-full rounded-md border p-2"
         />
+
+        {errors.description && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.description}
+          </p>
+        )}
       </div>
 
       {/* Status */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="mb-1 block font-medium">
           Status
         </label>
 
         <select
           value={status}
           onChange={(event) => setStatus(event.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-4 py-2"
+          className="w-full rounded-md border p-2"
         >
           <option value="Pending">Pending</option>
           <option value="In Progress">In Progress</option>
@@ -129,14 +222,14 @@ const TaskForm = ({
 
       {/* Priority */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="mb-1 block font-medium">
           Priority
         </label>
 
         <select
           value={priority}
           onChange={(event) => setPriority(event.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-4 py-2"
+          className="w-full rounded-md border p-2"
         >
           <option value="Low">Low</option>
           <option value="Medium">Medium</option>
@@ -146,23 +239,36 @@ const TaskForm = ({
 
       {/* Due Date */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="mb-1 block font-medium">
           Due Date
         </label>
 
         <input
           type="date"
           value={dueDate}
-          onChange={(event) => setDueDate(event.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-4 py-2"
+          min={getTodayDate()}
+          onChange={(event) => {
+            setDueDate(event.target.value);
+            setErrors((prev) => ({
+              ...prev,
+              dueDate: "",
+            }));
+          }}
+          className="w-full rounded-md border p-2"
         />
+
+        {errors.dueDate && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.dueDate}
+          </p>
+        )}
       </div>
 
       {/* Buttons */}
       <div className="flex gap-3">
         <button
           type="submit"
-          className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700"
+          className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
         >
           {editingTask ? "Update Task" : "Add Task"}
         </button>
@@ -171,7 +277,7 @@ const TaskForm = ({
           <button
             type="button"
             onClick={handleCancel}
-            className="bg-gray-200 text-gray-700 px-5 py-2 rounded-lg hover:bg-gray-300"
+            className="rounded-md bg-gray-200 px-4 py-2 text-gray-800"
           >
             Cancel
           </button>
@@ -182,4 +288,3 @@ const TaskForm = ({
 };
 
 export default TaskForm;
-  
