@@ -9,78 +9,81 @@ const initialTasks = [
     title: "Learn React Components",
     description: "Understand components and props",
     status: "Completed",
+    priority: "Low",
   },
   {
     id: 2,
     title: "Practice useState",
     description: "Understand React state management",
     status: "In Progress",
+    priority: "High",
   },
   {
     id: 3,
     title: "Build TaskFlow",
     description: "Create the task management application",
     status: "Pending",
+    priority: "Medium",
   },
 ];
 
 const Dashboard = () => {
-  // Load tasks from Local Storage
   const [taskData, setTaskData] = useState(() => {
     const savedTasks = localStorage.getItem("tasks");
 
-    return savedTasks !== null
-      ? JSON.parse(savedTasks)
-      : initialTasks;
+    if (savedTasks !== null) {
+      const parsedTasks = JSON.parse(savedTasks);
+
+      // Add default priority to older tasks
+      return parsedTasks.map((task) => ({
+        ...task,
+        priority: task.priority || "Medium",
+      }));
+    }
+
+    return initialTasks;
   });
 
-  // Track which task is being edited
   const [editingTask, setEditingTask] = useState(null);
 
-  // Save tasks whenever the array changes
+  // Save tasks in Local Storage
   useEffect(() => {
     localStorage.setItem("tasks", JSON.stringify(taskData));
   }, [taskData]);
 
-  // ADD TASK
+  // Add Task
   const handleAddTask = (newTask) => {
-    setTaskData((prevTasks) => [
-      ...prevTasks,
-      newTask,
-    ]);
+    setTaskData((prevTasks) => [...prevTasks, newTask]);
   };
 
-  // DELETE TASK
+  // Delete Task
   const handleDeleteTask = (id) => {
     setTaskData((prevTasks) =>
       prevTasks.filter((task) => task.id !== id)
     );
 
-    // Exit edit mode if the deleted task was being edited
     setEditingTask((currentTask) =>
       currentTask?.id === id ? null : currentTask
     );
   };
 
-  // SELECT TASK FOR EDITING
+  // Edit Task
   const handleEditTask = (task) => {
     setEditingTask(task);
   };
 
-  // UPDATE TASK
+  // Update Task
   const handleUpdateTask = (updatedTask) => {
     setTaskData((prevTasks) =>
       prevTasks.map((task) =>
-        task.id === updatedTask.id
-          ? updatedTask
-          : task
+        task.id === updatedTask.id ? updatedTask : task
       )
     );
 
     setEditingTask(null);
   };
 
-  // UPDATE STATUS
+  // Update Status
   const handleStatusChange = (id, newStatus) => {
     setTaskData((prevTasks) =>
       prevTasks.map((task) =>
@@ -91,7 +94,7 @@ const Dashboard = () => {
     );
   };
 
-  // Task Statistics
+  // Dashboard Statistics
   const totalTasks = taskData.length;
 
   const completedTasks = taskData.filter(
@@ -104,6 +107,10 @@ const Dashboard = () => {
 
   const inProgressTasks = taskData.filter(
     (task) => task.status === "In Progress"
+  ).length;
+
+  const highPriorityTasks = taskData.filter(
+    (task) => task.priority === "High"
   ).length;
 
   return (
@@ -121,8 +128,8 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {/* Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
 
           <div className="bg-white p-5 rounded-xl border">
             <p className="text-gray-500 text-sm">Total Tasks</p>
@@ -152,9 +159,16 @@ const Dashboard = () => {
             </h2>
           </div>
 
+          <div className="bg-white p-5 rounded-xl border">
+            <p className="text-gray-500 text-sm">High Priority</p>
+            <h2 className="text-3xl font-bold text-red-600 mt-2">
+              {highPriorityTasks}
+            </h2>
+          </div>
+
         </div>
 
-        {/* Add / Edit Form */}
+        {/* Task Form */}
         <TaskForm
           onAddTask={handleAddTask}
           editingTask={editingTask}
@@ -174,6 +188,7 @@ const Dashboard = () => {
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
               {taskData.map((task) => (
                 <TaskCard
                   key={task.id}
@@ -183,6 +198,7 @@ const Dashboard = () => {
                   onStatusChange={handleStatusChange}
                 />
               ))}
+
             </div>
           )}
         </section>

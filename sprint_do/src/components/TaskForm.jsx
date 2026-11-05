@@ -10,19 +10,28 @@ const TaskForm = ({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("Pending");
+  const [priority, setPriority] = useState("Medium");
 
-  // Fill the form when editingTask changes
   useEffect(() => {
     if (editingTask) {
       setTitle(editingTask.title);
       setDescription(editingTask.description);
       setStatus(editingTask.status);
+      setPriority(editingTask.priority || "Medium");
     } else {
       setTitle("");
       setDescription("");
       setStatus("Pending");
+      setPriority("Medium");
     }
   }, [editingTask]);
+
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setStatus("Pending");
+    setPriority("Medium");
+  };
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -30,35 +39,30 @@ const TaskForm = ({
     if (!title.trim()) return;
 
     if (editingTask) {
-      // Update existing task
       onUpdateTask({
         ...editingTask,
         title: title.trim(),
         description: description.trim(),
         status,
+        priority,
       });
     } else {
-      // Add new task
       const newTask = {
         id: Date.now(),
         title: title.trim(),
         description: description.trim(),
         status,
+        priority,
       };
 
       onAddTask(newTask);
     }
 
-    // Clear form after submission
-    setTitle("");
-    setDescription("");
-    setStatus("Pending");
+    resetForm();
   };
 
   const handleCancel = () => {
-    setTitle("");
-    setDescription("");
-    setStatus("Pending");
+    resetForm();
     onCancelEdit();
   };
 
@@ -71,6 +75,7 @@ const TaskForm = ({
         {editingTask ? "Edit Task" : "Add New Task"}
       </h2>
 
+      {/* Task Title */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Task Title
@@ -86,6 +91,7 @@ const TaskForm = ({
         />
       </div>
 
+      {/* Description */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Description
@@ -100,6 +106,7 @@ const TaskForm = ({
         />
       </div>
 
+      {/* Status */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Status
@@ -116,6 +123,24 @@ const TaskForm = ({
         </select>
       </div>
 
+      {/* Priority */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Priority
+        </label>
+
+        <select
+          value={priority}
+          onChange={(event) => setPriority(event.target.value)}
+          className="w-full border border-gray-300 rounded-lg px-4 py-2"
+        >
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+        </select>
+      </div>
+
+      {/* Buttons */}
       <div className="flex gap-3">
         <button
           type="submit"
