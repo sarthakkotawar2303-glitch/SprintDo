@@ -26,22 +26,14 @@ const TaskCard = ({
           {task.title}
         </h3>
 
-        <span
-          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-            statusStyles[task.status]
-          }`}
-        >
+        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusStyles[task.status]}`}>
           {task.status}
         </span>
       </div>
 
       {/* Priority */}
       <div>
-        <span
-          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-            priorityStyles[task.priority || "Medium"]
-          }`}
-        >
+        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${priorityStyles[task.priority || "Medium"]}`}>
           {task.priority || "Medium"} Priority
         </span>
       </div>
@@ -50,6 +42,25 @@ const TaskCard = ({
       <p className="text-sm text-gray-500">
         {task.description || "No description provided."}
       </p>
+
+      {/* Due Date */}
+      <div className="text-sm text-gray-600">
+        {task.dueDate ? (
+          <p>
+            <span className="font-medium">Due Date:</span>{" "}
+            {new Date(task.dueDate + "T00:00:00").toLocaleDateString(
+              "en-IN",
+              {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              }
+            )}
+          </p>
+        ) : (
+          <p className="text-gray-400">No due date set</p>
+        )}
+      </div>
 
       {/* Update Status */}
       <div>
@@ -86,7 +97,6 @@ const TaskCard = ({
           Delete
         </button>
       </div>
-
     </div>
   );
 };

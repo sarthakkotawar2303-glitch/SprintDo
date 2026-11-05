@@ -11,26 +11,28 @@ const TaskForm = ({
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("Pending");
   const [priority, setPriority] = useState("Medium");
+  const [dueDate, setDueDate] = useState("");
 
+  // Load existing task details when editing
   useEffect(() => {
     if (editingTask) {
       setTitle(editingTask.title);
       setDescription(editingTask.description);
       setStatus(editingTask.status);
       setPriority(editingTask.priority || "Medium");
+      setDueDate(editingTask.dueDate || "");
     } else {
-      setTitle("");
-      setDescription("");
-      setStatus("Pending");
-      setPriority("Medium");
+      resetForm();
     }
   }, [editingTask]);
 
+  // Reset all form fields
   const resetForm = () => {
     setTitle("");
     setDescription("");
     setStatus("Pending");
     setPriority("Medium");
+    setDueDate("");
   };
 
   const handleSubmit = (event) => {
@@ -45,6 +47,7 @@ const TaskForm = ({
         description: description.trim(),
         status,
         priority,
+        dueDate,
       });
     } else {
       const newTask = {
@@ -53,6 +56,7 @@ const TaskForm = ({
         description: description.trim(),
         status,
         priority,
+        dueDate,
       };
 
       onAddTask(newTask);
@@ -140,6 +144,20 @@ const TaskForm = ({
         </select>
       </div>
 
+      {/* Due Date */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Due Date
+        </label>
+
+        <input
+          type="date"
+          value={dueDate}
+          onChange={(event) => setDueDate(event.target.value)}
+          className="w-full border border-gray-300 rounded-lg px-4 py-2"
+        />
+      </div>
+
       {/* Buttons */}
       <div className="flex gap-3">
         <button
@@ -164,3 +182,4 @@ const TaskForm = ({
 };
 
 export default TaskForm;
+  
