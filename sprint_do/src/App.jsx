@@ -17,23 +17,29 @@ import Register from "./pages/Register";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
+
 import ForgotPassword from "./pages/ForgotPassword";
 
 function App() {
   return (
     <Routes>
-
-      {/* Public routes: Only accessible when logged out */}
+      {/* Public routes */}
       <Route element={<PublicRoute />}>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
       </Route>
 
-      {/* Protected routes: Only accessible when logged in */}
+      {/* Protected routes */}
       <Route element={<ProtectedRoute />}>
-        <Route element={<MainLayout />}>
-
+        <Route
+          element={
+            <ErrorBoundary>
+              <MainLayout />
+            </ErrorBoundary>
+          }
+        >
           <Route path="/" element={<Dashboard />} />
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/tasks/new" element={<AddTask />} />
@@ -41,13 +47,11 @@ function App() {
           <Route path="/tasks/completed" element={<CompletedTasks />} />
           <Route path="/tasks/in-progress" element={<InProgressTasks />} />
           <Route path="/profile" element={<Profile />} />
-
         </Route>
       </Route>
 
       {/* Fallback route */}
       <Route path="*" element={<NotFound />} />
-
     </Routes>
   );
 }
