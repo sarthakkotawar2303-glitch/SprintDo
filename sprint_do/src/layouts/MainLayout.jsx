@@ -15,9 +15,14 @@ const MainLayout = () => {
     setEditingTask(task);
   };
 
-  const handleUpdateTask = (updatedTask) => {
-    updateTask(updatedTask);
-    setEditingTask(null);
+  const handleUpdateTask = async (updatedTask) => {
+    try {
+      await updateTask(updatedTask);
+      setEditingTask(null);
+    } catch (error) {
+      console.error("Unable to update task:", error);
+      throw error;
+    }
   };
 
   return (

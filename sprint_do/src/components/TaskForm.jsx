@@ -18,17 +18,15 @@ const TaskForm = ({
   onUpdateTask,
   onCancelEdit,
 }) => {
-  // Form states
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("Pending");
   const [priority, setPriority] = useState("Medium");
   const [dueDate, setDueDate] = useState("");
 
-  // Validation errors
   const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState("");
 
-  // Reset form
   const resetForm = () => {
     setTitle("");
     setDescription("");
@@ -36,9 +34,10 @@ const TaskForm = ({
     setPriority("Medium");
     setDueDate("");
     setErrors({});
+    setSubmitError("");
   };
 
-  // Populate form when editing a task
+  // Populate form when editing a task.
   useEffect(() => {
     if (editingTask) {
       setTitle(editingTask.title);
@@ -47,22 +46,20 @@ const TaskForm = ({
       setPriority(editingTask.priority || "Medium");
       setDueDate(editingTask.dueDate || "");
       setErrors({});
+      setSubmitError("");
     } else {
       resetForm();
     }
   }, [editingTask]);
 
-  // Validate form fields
   const validateForm = () => {
     const newErrors = {};
 
-    // Title validation
     if (title.trim().length < 3) {
       newErrors.title =
         "Title must contain at least 3 characters.";
     }
 
-    // Description validation
     if (
       description.trim() &&
       description.trim().length < 5
@@ -71,7 +68,6 @@ const TaskForm = ({
         "Description must contain at least 5 characters.";
     }
 
-    // Due date validation
     if (dueDate) {
       const today = new Date();
 
@@ -81,9 +77,7 @@ const TaskForm = ({
         today.getDate()
       );
 
-      const selectedDate = new Date(
-        `${dueDate}T00:00:00`
-      );
+      const selectedDate = new Date(`${dueDate}T00:00:00`);
 
       if (selectedDate < localToday) {
         newErrors.dueDate =
@@ -96,43 +90,44 @@ const TaskForm = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
-    // Stop if validation fails
     if (!validateForm()) {
       return;
     }
 
-    if (editingTask) {
-      // Update existing task
-      onUpdateTask({
-        ...editingTask,
-        title: title.trim(),
-        description: description.trim(),
-        status,
-        priority,
-        dueDate,
-      });
-    } else {
-      // Create new task
-      const newTask = {
-        id: Date.now(),
-        title: title.trim(),
-        description: description.trim(),
-        status,
-        priority,
-        dueDate,
-      };
+    setSubmitError("");
 
-      onAddTask(newTask);
+    try {
+      if (editingTask) {
+        await onUpdateTask({
+          ...editingTask,
+          title: title.trim(),
+          description: description.trim(),
+          status,
+          priority,
+          dueDate,
+        });
+      } else {
+        await onAddTask({
+          title: title.trim(),
+          description: description.trim(),
+          status,
+          priority,
+          dueDate,
+        });
+      }
+
+      resetForm();
+    } catch (error) {
+      console.error("Task submission failed:", error);
+      setSubmitError(
+        "Unable to save the task. Please try again."
+      );
     }
-
-    resetForm();
   };
 
-  // Handle cancel editing
   const handleCancel = () => {
     resetForm();
     onCancelEdit();
@@ -263,6 +258,12 @@ const TaskForm = ({
           </p>
         )}
       </div>
+
+      {submitError && (
+        <p className="text-sm text-red-600">
+          {submitError}
+        </p>
+      )}
 
       {/* Buttons */}
       <div className="flex gap-3">

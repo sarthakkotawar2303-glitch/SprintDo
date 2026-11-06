@@ -3,14 +3,18 @@ import { useNavigate } from "react-router-dom";
 import TaskForm from "../components/TaskForm";
 import useTasks from "../hook/useTasks";
 
-
 const AddTask = () => {
   const { addTask } = useTasks();
   const navigate = useNavigate();
 
-  const handleAddTask = (newTask) => {
-    addTask(newTask);
-    navigate("/tasks");
+  const handleAddTask = async (newTask) => {
+    try {
+      await addTask(newTask);
+      navigate("/tasks");
+    } catch (error) {
+      console.error("Unable to add task:", error);
+      throw error;
+    }
   };
 
   return (

@@ -1,95 +1,142 @@
 
 import { createContext, useEffect, useState } from "react";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
+
+import { db } from "../config/FirebaseConfig";
+import useAuth from "../hook/useAuth";
 
 const TaskContext = createContext(null);
 
-const initialTasks = [
-  {
-    id: 1,
-    title: "Learn React Components",
-    description: "Understand components and props",
-    status: "Completed",
-    priority: "Low",
-    dueDate: "",
-  },
-  {
-    id: 2,
-    title: "Practice useState",
-    description: "Understand React state management",
-    status: "In Progress",
-    priority: "High",
-    dueDate: "",
-  },
-  {
-    id: 3,
-    title: "Build TaskFlow",
-    description: "Create the task management application",
-    status: "Pending",
-    priority: "Medium",
-    dueDate: "",
-  },
-];
-
 export const TaskProvider = ({ children }) => {
-  const [taskData, setTaskData] = useState(() => {
-    try {
-      const savedTasks = localStorage.getItem("tasks");
+  const { currentUser, loading: authLoading } = useAuth();
 
-      if (savedTasks !== null) {
-        const parsedTasks = JSON.parse(savedTasks);
+  const [taskData, setTaskData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-        return parsedTasks.map((task) => ({
-          ...task,
-          priority: task.priority || "Medium",
-          dueDate: task.dueDate || "",
-        }));
-      }
-    } catch (error) {
-      console.error("Unable to load tasks:", error);
+  // Load only the logged-in user's tasks.
+  useEffect(() => {
+    if (authLoading) {
+      return;
     }
 
-    return initialTasks;
-  });
+    if (!currentUser) {
+      setTaskData([]);
+      setLoading(false);
+      setError("");
+      return;
+    }
 
-  // Persist tasks whenever taskData changes
-  useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(taskData));
-  }, [taskData]);
+    // Clear previous user's tasks when the account changes.
+    setTaskData([]);
+    setLoading(true);
+    setError("");
 
-  // Add task
-  const addTask = (newTask) => {
-    setTaskData((prevTasks) => [...prevTasks, newTask]);
-  };
+    const tasksCollection = collection(
+      db,
+      "users",
+      currentUser.uid,
+      "tasks"
+    );
 
-  // Update task
-  const updateTask = (updatedTask) => {
-    setTaskData((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === updatedTask.id ? updatedTask : task
-      )
+    const unsubscribe = onSnapshot(
+      tasksCollection,
+      (snapshot) => {
+        const userTasks = snapshot.docs.map((taskDoc) => ({
+          id: taskDoc.id,
+          ...taskDoc.data(),
+          priority: taskDoc.data().priority || "Medium",
+          dueDate: taskDoc.data().dueDate || "",
+        }));
+
+        setTaskData(userTasks);
+        setLoading(false);
+        setError("");
+      },
+      (snapshotError) => {
+        console.error("Unable to load tasks:", snapshotError);
+        setError("Unable to load your tasks. Please refresh and try again.");
+        setTaskData([]);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [currentUser, authLoading]);
+
+  // Add task to the current user's collection.
+  const addTask = async (newTask) => {
+    if (!currentUser) {
+      throw new Error("You must be logged in to add a task.");
+    }
+
+    const { id, ...taskDetails } = newTask;
+
+    await addDoc(
+      collection(db, "users", currentUser.uid, "tasks"),
+      {
+        ...taskDetails,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }
     );
   };
 
-  // Delete task
-  const deleteTask = (id) => {
-    setTaskData((prevTasks) =>
-      prevTasks.filter((task) => task.id !== id)
+  // Update an existing task.
+  const updateTask = async (updatedTask) => {
+    if (!currentUser) {
+      throw new Error("You must be logged in to update a task.");
+    }
+
+    const { id, createdAt, ...taskDetails } = updatedTask;
+
+    await updateDoc(
+      doc(db, "users", currentUser.uid, "tasks", id),
+      {
+        ...taskDetails,
+        updatedAt: serverTimestamp(),
+      }
     );
   };
 
-  // Update task status
-  const updateTaskStatus = (id, newStatus) => {
-    setTaskData((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === id
-          ? { ...task, status: newStatus }
-          : task
-      )
+  // Delete a task.
+  const deleteTask = async (id) => {
+    if (!currentUser) {
+      throw new Error("You must be logged in to delete a task.");
+    }
+
+    await deleteDoc(
+      doc(db, "users", currentUser.uid, "tasks", id)
+    );
+  };
+
+  // Update task status.
+  const updateTaskStatus = async (id, newStatus) => {
+    if (!currentUser) {
+      throw new Error("You must be logged in to update a task.");
+    }
+
+    await updateDoc(
+      doc(db, "users", currentUser.uid, "tasks", id),
+      {
+        status: newStatus,
+        updatedAt: serverTimestamp(),
+      }
     );
   };
 
   const value = {
     taskData,
+    loading,
+    error,
     addTask,
     updateTask,
     deleteTask,
